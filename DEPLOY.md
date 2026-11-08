@@ -42,3 +42,20 @@ Objetivo: servir el mantenedor/valorizador bajo `tradeswap.cl/curvas` (o
 - **Cloudflare Worker** enrutando `tradeswap.cl/curvas/*` a este sitio.
 
 Recomendado: el path en `tradeswap-cl` (mismo dominio, sin DNS nuevo).
+
+### Sync automático (ya configurado)
+
+`tradeswap-cl` tiene un workflow **`.github/workflows/sync-curvas.yml`** que hace
+checkout de este repo (`curve-engine`, público), compila `web/` y actualiza
+`tradeswap-cl/curvas/` por sí solo (commit con el `GITHUB_TOKEN`, sin PAT). Se
+dispara manual o diario (09:00 UTC):
+
+```bash
+# forzar el sync ahora (tras cambiar la SPA en curve-engine)
+gh workflow run sync-curvas.yml -R Coto-Trader/tradeswap-cl
+```
+
+Así, `coto-trader.github.io/curve-engine/` (standalone) y `tradeswap.cl/curvas/`
+se mantienen al día desde la misma fuente. Para sync inmediato en cada push a
+`curve-engine` haría falta un PAT con `contents:write` sobre `tradeswap-cl` y un
+paso `repository_dispatch` en el deploy de curve-engine (opcional).
