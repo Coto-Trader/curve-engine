@@ -7,13 +7,23 @@ const TENORS = ["1Y", "2Y", "3Y", "5Y", "7Y", "10Y", "15Y", "20Y"];
 
 export function ValuationTab() {
   const { config, system } = useStore();
-  const [productId, setProductId] = useState(config.products[0]?.id ?? "");
-  const [csa, setCsa] = useState("USD");
-  const [tenor, setTenor] = useState("5Y");
-  const [notional, setNotional] = useState(10_000_000_000);
-  const [receiveA, setReceiveA] = useState(true);
-  const [useParRate, setUseParRate] = useState(true);
-  const [manualRate, setManualRate] = useState(5.0);
+  // Ticket pre-cargado por URL (p.ej. desde TradeSwap):
+  //   ?product=IRS_CLP_CAM&csa=USD&tenor=5Y&notional=10000000000&rate=5.1
+  const qp = new URLSearchParams(location.search);
+  const qProduct = qp.get("product");
+  const qRate = parseFloat(qp.get("rate") ?? "");
+  const [productId, setProductId] = useState(
+    () => (config.products.find((x) => x.id === qProduct) ? qProduct! : config.products[0]?.id ?? "")
+  );
+  const [csa, setCsa] = useState(() => (qp.get("csa") || "USD").toUpperCase());
+  const [tenor, setTenor] = useState(() => qp.get("tenor") || "5Y");
+  const [notional, setNotional] = useState(() => {
+    const n = parseFloat(qp.get("notional") ?? "");
+    return isFinite(n) && n > 0 ? n : 10_000_000_000;
+  });
+  const [receiveA, setReceiveA] = useState(qp.get("receive") !== "pay");
+  const [useParRate, setUseParRate] = useState(!isFinite(qRate));
+  const [manualRate, setManualRate] = useState(isFinite(qRate) ? qRate : 5.0);
 
   const product = config.products.find((p) => p.id === productId);
 

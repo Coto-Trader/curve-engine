@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StoreProvider, useStore } from "./state/store";
 import { InputsTab } from "./tabs/InputsTab";
 import { CurrenciesTab } from "./tabs/CurrenciesTab";
@@ -45,10 +45,28 @@ function Toolbar() {
   );
 }
 
+const TAB_IDS = TABS.map((t) => t.id);
+
+function tabFromHash(): string {
+  const h = location.hash.replace(/^#/, "").toLowerCase();
+  return TAB_IDS.includes(h) ? h : "inputs";
+}
+
 function Shell() {
-  const [active, setActive] = useState("inputs");
+  const [active, setActive] = useState(tabFromHash);
   const { system } = useStore();
-  const current = TABS.find((t) => t.id === active)!;
+  const current = TABS.find((t) => t.id === active) ?? TABS[0];
+
+  useEffect(() => {
+    const onHash = () => setActive(tabFromHash());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  const select = (id: string) => {
+    setActive(id);
+    if (location.hash.replace(/^#/, "") !== id) history.replaceState(null, "", `#${id}`);
+  };
 
   return (
     <>
@@ -73,7 +91,7 @@ function Shell() {
 
       <div className="tabs">
         {TABS.map((t, i) => (
-          <button key={t.id} className={`tab ${active === t.id ? "active" : ""}`} onClick={() => setActive(t.id)}>
+          <button key={t.id} className={`tab ${active === t.id ? "active" : ""}`} onClick={() => select(t.id)}>
             <span className="num">{i + 1}</span>{t.label}
           </button>
         ))}
