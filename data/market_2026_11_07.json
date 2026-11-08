@@ -1,0 +1,28 @@
+{
+  "_comment": "Snapshot de mercado para el slice CLP. IMPORTANTE: los niveles son SEMILLA internamente coherentes (NO son las capturas exactas de SWPM del 2026-11-07). Spots SI provienen del manual. Reemplazar 'quotes' por los pilares exactos de pantalla para validar Zero-MtM al centavo.",
+  "valuation_date": "2026-11-07",
+  "spot_fx": {
+    "USDCLP": 978.55249,
+    "CLFCLP": 41284.828125,
+    "EURUSD": 1.08500
+  },
+  "quotes": {
+    "SOFRRATE": 3.92,
+    "USOSFR1W": 3.95, "USOSFR1M": 3.98, "USOSFR2M": 4.00, "USOSFR3M": 4.02,
+    "USOSFR6M": 4.10, "USOSFR9M": 4.18, "USOSFR12M": 4.25, "USOSFR18M": 4.34,
+    "USOSFR2": 4.40, "USOSFR3": 4.45, "USOSFR5": 4.55, "USOSFR7": 4.62,
+    "USOSFR10": 4.70, "USOSFR15": 4.78, "USOSFR20": 4.82, "USOSFR30": 4.85,
+
+    "CHTAS1D": 4.50,
+    "CHSWNI1M": 4.55, "CHSWNI2M": 4.58, "CHSWNI3M": 4.62, "CHSWNI6M": 4.70,
+    "CHSWNI9M": 4.80, "CHSWNI12M": 4.88, "CHSWNI18M": 4.95,
+    "CHSWNI2": 5.005, "CHSWNI3": 5.05, "CHSWNI5": 5.15, "CHSWNI7": 5.22,
+    "CHSWNI10": 5.30, "CHSWNI15": 5.38, "CHSWNI20": 5.42,
+
+    "CHN1W": 0.10, "CHN1M": 0.42, "CHN2M": 0.85, "CHN3M": 1.28,
+    "CHN6M": 2.60, "CHN9M": 3.90, "CHN12M": 5.20, "CHN18M": 7.90,
+
+    "CPXOSS2": -71.50, "CPXOSS3": -65.00, "CPXOSS5": -55.00, "CPXOSS7": -50.00,
+    "CPXOSS10": -45.00, "CPXOSS15": -40.00, "CPXOSS20": -38.00
+  }
+}

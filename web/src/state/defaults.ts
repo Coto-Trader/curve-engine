@@ -1,0 +1,297 @@
+import { AppConfig, InputCfg } from "../engine/model";
+
+// Snapshot semilla coherente (NO capturas exactas). Spots: del manual.
+const QUOTES: Record<string, number> = {
+  SOFRRATE: 3.92,
+  USOSFR1W: 3.95, USOSFR1M: 3.98, USOSFR2M: 4.0, USOSFR3M: 4.02,
+  USOSFR6M: 4.1, USOSFR9M: 4.18, USOSFR12M: 4.25, USOSFR18M: 4.34,
+  USOSFR2: 4.4, USOSFR3: 4.45, USOSFR5: 4.55, USOSFR7: 4.62,
+  USOSFR10: 4.7, USOSFR15: 4.78, USOSFR20: 4.82, USOSFR30: 4.85,
+  CHTAS1D: 4.5,
+  CHSWNI1M: 4.55, CHSWNI2M: 4.58, CHSWNI3M: 4.62, CHSWNI6M: 4.7,
+  CHSWNI9M: 4.8, CHSWNI12M: 4.88, CHSWNI18M: 4.95,
+  CHSWNI2: 5.005, CHSWNI3: 5.05, CHSWNI5: 5.15, CHSWNI7: 5.22,
+  CHSWNI10: 5.3, CHSWNI15: 5.38, CHSWNI20: 5.42,
+  CHN1W: 0.1, CHN1M: 0.42, CHN2M: 0.85, CHN3M: 1.28,
+  CHN6M: 2.6, CHN9M: 3.9, CHN12M: 5.2, CHN18M: 7.9,
+  CPXOSS2: -71.5, CPXOSS3: -65, CPXOSS5: -55, CPXOSS7: -50,
+  CPXOSS10: -45, CPXOSS15: -40, CPXOSS20: -38,
+
+  // --- EUR ---
+  ESTRRATE: 2.44,
+  ESTR1W: 2.45, ESTR1M: 2.46, ESTR3M: 2.48, ESTR6M: 2.52, ESTR12M: 2.58,
+  ESTR18M: 2.62, ESTR2: 2.66, ESTR3: 2.72, ESTR5: 2.82, ESTR7: 2.9,
+  ESTR10: 3.0, ESTR15: 3.08, ESTR20: 3.12, ESTR30: 3.15,
+  EUR6M: 3.016, EURIBOR1Y: 3.0, EURIBOR2: 2.95, EURIBOR3: 2.98, EURIBOR5: 3.05,
+  EURIBOR7: 3.12, EURIBOR10: 3.2, EURIBOR15: 3.28, EURIBOR20: 3.3,
+  EUFWD1W: -0.00003, EUFWD1M: -0.0001, EUFWD3M: -0.0004, EUFWD6M: -0.0008,
+  EUFWD12M: -0.0016, EUFWD18M: -0.0024,
+  EUBASIS2: -20, EUBASIS5: -18, EUBASIS10: -15, EUBASIS20: -12,
+
+  // --- UF (outright forwards dia 9, inflacion implicita ~3.5%) ---
+  UFPC1M: 41405.4, UFPC2M: 41526.4, UFPC3M: 41647.7, UFPC6M: 42013.5,
+  UFPC9M: 42382.7, UFPC12M: 42755.1, UFPC18M: 43510.0, UFPC2: 44278.1,
+  UFPC3: 45855.5, UFPC5: 49180.8, UFPC7: 52747.4, UFPC10: 58586.0,
+  UFPC15: 69794.9, UFPC20: 83137.3,
+  // Swaps Camara UF (tasa real, CHSWC) para el tramo largo de la 520
+  CHSWC2: 1.49, CHSWC3: 1.65, CHSWC5: 2.005, CHSWC7: 2.15,
+  CHSWC10: 2.30, CHSWC15: 2.45, CHSWC20: 2.55,
+};
+
+const DESCR: Record<string, string> = {
+  SOFRRATE: "SOFR O/N (Fed NY)", CHTAS1D: "TPM Banco Central Chile",
+};
+
+const inputs: InputCfg[] = Object.entries(QUOTES).map(([ticker, mid]) => ({
+  ticker, mid, provider: "BGN", description: DESCR[ticker] ?? "",
+}));
+
+export const DEFAULT_CONFIG: AppConfig = {
+  valuationDate: "2026-11-07",
+  reportingCcy: "CLP",
+  spotFx: { USDCLP: 978.55249, CLFCLP: 41284.828125, EURUSD: 1.085, USDEUR: 1 / 1.085 },
+  inputs,
+  currencies: [
+    { code: "CLP", name: "Peso chileno", calendars: ["USNY", "CLSA"], indices: ["CLICP"], spotLag: 2 },
+    { code: "USD", name: "Dolar (SOFR)", calendars: ["USNY"], indices: ["SOFR"], spotLag: 2 },
+    { code: "EUR", name: "Euro (ESTR/Euribor)", calendars: ["TARGET"], indices: ["ESTR", "EURIBOR_6M"], spotLag: 2 },
+    { code: "CLF", name: "UF (inflacion)", calendars: ["USNY", "CLSA"], indices: ["UF"], spotLag: 2 },
+  ],
+  curves: [
+    {
+      id: "490", name: "USD_SOFR", currency: "USD", kind: "NATIVE",
+      calendars: ["USNY"], spotLag: 2, dayCount: "ACT/360", interpolation: "LOG_LINEAR_DF",
+      nodes: [
+        { tenor: "1D", ticker: "SOFRRATE", type: "CASH", freq: "Z" },
+        { tenor: "1W", ticker: "USOSFR1W", type: "OIS_SWAP", freq: "A" },
+        { tenor: "1M", ticker: "USOSFR1M", type: "OIS_SWAP", freq: "A" },
+        { tenor: "2M", ticker: "USOSFR2M", type: "OIS_SWAP", freq: "A" },
+        { tenor: "3M", ticker: "USOSFR3M", type: "OIS_SWAP", freq: "A" },
+        { tenor: "6M", ticker: "USOSFR6M", type: "OIS_SWAP", freq: "A" },
+        { tenor: "9M", ticker: "USOSFR9M", type: "OIS_SWAP", freq: "A" },
+        { tenor: "12M", ticker: "USOSFR12M", type: "OIS_SWAP", freq: "A" },
+        { tenor: "18M", ticker: "USOSFR18M", type: "OIS_SWAP", freq: "A" },
+        { tenor: "2Y", ticker: "USOSFR2", type: "OIS_SWAP", freq: "A" },
+        { tenor: "3Y", ticker: "USOSFR3", type: "OIS_SWAP", freq: "A" },
+        { tenor: "5Y", ticker: "USOSFR5", type: "OIS_SWAP", freq: "A" },
+        { tenor: "7Y", ticker: "USOSFR7", type: "OIS_SWAP", freq: "A" },
+        { tenor: "10Y", ticker: "USOSFR10", type: "OIS_SWAP", freq: "A" },
+        { tenor: "15Y", ticker: "USOSFR15", type: "OIS_SWAP", freq: "A" },
+        { tenor: "20Y", ticker: "USOSFR20", type: "OIS_SWAP", freq: "A" },
+        { tenor: "30Y", ticker: "USOSFR30", type: "OIS_SWAP", freq: "A" },
+      ],
+    },
+    {
+      id: "193", name: "CLP_CAMARA", currency: "CLP", kind: "NATIVE",
+      calendars: ["USNY", "CLSA"], spotLag: 2, dayCount: "ACT/360", interpolation: "LOG_LINEAR_DF",
+      nodes: [
+        { tenor: "1D", ticker: "CHTAS1D", type: "CASH", freq: "Z" },
+        { tenor: "1M", ticker: "CHSWNI1M", type: "OIS_SWAP", freq: "Z" },
+        { tenor: "2M", ticker: "CHSWNI2M", type: "OIS_SWAP", freq: "Z" },
+        { tenor: "3M", ticker: "CHSWNI3M", type: "OIS_SWAP", freq: "Z" },
+        { tenor: "6M", ticker: "CHSWNI6M", type: "OIS_SWAP", freq: "Z" },
+        { tenor: "9M", ticker: "CHSWNI9M", type: "OIS_SWAP", freq: "Z" },
+        { tenor: "12M", ticker: "CHSWNI12M", type: "OIS_SWAP", freq: "Z" },
+        { tenor: "18M", ticker: "CHSWNI18M", type: "OIS_SWAP", freq: "Z" },
+        { tenor: "2Y", ticker: "CHSWNI2", type: "OIS_SWAP", freq: "S/A" },
+        { tenor: "3Y", ticker: "CHSWNI3", type: "OIS_SWAP", freq: "S/A" },
+        { tenor: "5Y", ticker: "CHSWNI5", type: "OIS_SWAP", freq: "S/A" },
+        { tenor: "7Y", ticker: "CHSWNI7", type: "OIS_SWAP", freq: "S/A" },
+        { tenor: "10Y", ticker: "CHSWNI10", type: "OIS_SWAP", freq: "S/A" },
+        { tenor: "15Y", ticker: "CHSWNI15", type: "OIS_SWAP", freq: "S/A" },
+        { tenor: "20Y", ticker: "CHSWNI20", type: "OIS_SWAP", freq: "S/A" },
+      ],
+    },
+    {
+      id: "194", name: "BASIS_USD_CLP", currency: "CLP_USD", kind: "BRIDGE",
+      calendars: ["USNY", "CLSA"], spotLag: 2, dayCount: "ACT/360",
+      nodes: [
+        { tenor: "1W", ticker: "CHN1W", type: "FX_FWD_PTS", freq: "Z", pointsScale: 1 },
+        { tenor: "1M", ticker: "CHN1M", type: "FX_FWD_PTS", freq: "Z", pointsScale: 1 },
+        { tenor: "2M", ticker: "CHN2M", type: "FX_FWD_PTS", freq: "Z", pointsScale: 1 },
+        { tenor: "3M", ticker: "CHN3M", type: "FX_FWD_PTS", freq: "Z", pointsScale: 1 },
+        { tenor: "6M", ticker: "CHN6M", type: "FX_FWD_PTS", freq: "Z", pointsScale: 1 },
+        { tenor: "9M", ticker: "CHN9M", type: "FX_FWD_PTS", freq: "Z", pointsScale: 1 },
+        { tenor: "12M", ticker: "CHN12M", type: "FX_FWD_PTS", freq: "Z", pointsScale: 1 },
+        { tenor: "18M", ticker: "CHN18M", type: "FX_FWD_PTS", freq: "Z", pointsScale: 1 },
+        { tenor: "2Y", ticker: "CPXOSS2", type: "CCS_BASIS", freq: "A" },
+        { tenor: "3Y", ticker: "CPXOSS3", type: "CCS_BASIS", freq: "A" },
+        { tenor: "5Y", ticker: "CPXOSS5", type: "CCS_BASIS", freq: "A" },
+        { tenor: "7Y", ticker: "CPXOSS7", type: "CCS_BASIS", freq: "A" },
+        { tenor: "10Y", ticker: "CPXOSS10", type: "CCS_BASIS", freq: "A" },
+        { tenor: "15Y", ticker: "CPXOSS15", type: "CCS_BASIS", freq: "A" },
+        { tenor: "20Y", ticker: "CPXOSS20", type: "CCS_BASIS", freq: "A" },
+      ],
+    },
+    {
+      id: "423", name: "CLP_COLL_USD", currency: "CLP", kind: "INHERITED",
+      parentCollateral: "490", parentLocal: "193", bridge: "194",
+      spotFxKey: "USDCLP", cutoff: "18M",
+    },
+
+    // ----- EUR -----
+    {
+      id: "514", name: "EUR_OIS_ESTR", currency: "EUR", kind: "NATIVE",
+      calendars: ["TARGET"], spotLag: 2, dayCount: "ACT/360", interpolation: "LOG_LINEAR_DF",
+      nodes: [
+        { tenor: "1D", ticker: "ESTRRATE", type: "CASH", freq: "Z" },
+        { tenor: "1W", ticker: "ESTR1W", type: "OIS_SWAP", freq: "A" },
+        { tenor: "1M", ticker: "ESTR1M", type: "OIS_SWAP", freq: "A" },
+        { tenor: "3M", ticker: "ESTR3M", type: "OIS_SWAP", freq: "A" },
+        { tenor: "6M", ticker: "ESTR6M", type: "OIS_SWAP", freq: "A" },
+        { tenor: "12M", ticker: "ESTR12M", type: "OIS_SWAP", freq: "A" },
+        { tenor: "18M", ticker: "ESTR18M", type: "OIS_SWAP", freq: "A" },
+        { tenor: "2Y", ticker: "ESTR2", type: "OIS_SWAP", freq: "A" },
+        { tenor: "3Y", ticker: "ESTR3", type: "OIS_SWAP", freq: "A" },
+        { tenor: "5Y", ticker: "ESTR5", type: "OIS_SWAP", freq: "A" },
+        { tenor: "7Y", ticker: "ESTR7", type: "OIS_SWAP", freq: "A" },
+        { tenor: "10Y", ticker: "ESTR10", type: "OIS_SWAP", freq: "A" },
+        { tenor: "15Y", ticker: "ESTR15", type: "OIS_SWAP", freq: "A" },
+        { tenor: "20Y", ticker: "ESTR20", type: "OIS_SWAP", freq: "A" },
+        { tenor: "30Y", ticker: "ESTR30", type: "OIS_SWAP", freq: "A" },
+      ],
+    },
+    {
+      id: "45", name: "EUR_EURIBOR_6M", currency: "EUR", kind: "NATIVE",
+      calendars: ["TARGET"], spotLag: 2, dayCount: "30/360", interpolation: "LOG_LINEAR_DF",
+      nodes: [
+        { tenor: "6M", ticker: "EUR6M", type: "CASH", freq: "Z" },
+        { tenor: "12M", ticker: "EURIBOR1Y", type: "IBOR_SWAP", freq: "Z" },
+        { tenor: "2Y", ticker: "EURIBOR2", type: "IBOR_SWAP", freq: "A" },
+        { tenor: "3Y", ticker: "EURIBOR3", type: "IBOR_SWAP", freq: "A" },
+        { tenor: "5Y", ticker: "EURIBOR5", type: "IBOR_SWAP", freq: "A" },
+        { tenor: "7Y", ticker: "EURIBOR7", type: "IBOR_SWAP", freq: "A" },
+        { tenor: "10Y", ticker: "EURIBOR10", type: "IBOR_SWAP", freq: "A" },
+        { tenor: "15Y", ticker: "EURIBOR15", type: "IBOR_SWAP", freq: "A" },
+        { tenor: "20Y", ticker: "EURIBOR20", type: "IBOR_SWAP", freq: "A" },
+      ],
+    },
+    {
+      id: "92", name: "BASIS_EUR_USD", currency: "EUR_USD", kind: "BRIDGE",
+      calendars: ["TARGET", "USNY"], spotLag: 2, dayCount: "ACT/360",
+      nodes: [
+        { tenor: "1W", ticker: "EUFWD1W", type: "FX_FWD_PTS", freq: "Z", pointsScale: 1 },
+        { tenor: "1M", ticker: "EUFWD1M", type: "FX_FWD_PTS", freq: "Z", pointsScale: 1 },
+        { tenor: "3M", ticker: "EUFWD3M", type: "FX_FWD_PTS", freq: "Z", pointsScale: 1 },
+        { tenor: "6M", ticker: "EUFWD6M", type: "FX_FWD_PTS", freq: "Z", pointsScale: 1 },
+        { tenor: "12M", ticker: "EUFWD12M", type: "FX_FWD_PTS", freq: "Z", pointsScale: 1 },
+        { tenor: "18M", ticker: "EUFWD18M", type: "FX_FWD_PTS", freq: "Z", pointsScale: 1 },
+        { tenor: "2Y", ticker: "EUBASIS2", type: "CCS_BASIS", freq: "A" },
+        { tenor: "5Y", ticker: "EUBASIS5", type: "CCS_BASIS", freq: "A" },
+        { tenor: "10Y", ticker: "EUBASIS10", type: "CCS_BASIS", freq: "A" },
+        { tenor: "20Y", ticker: "EUBASIS20", type: "CCS_BASIS", freq: "A" },
+      ],
+    },
+    {
+      id: "403", name: "EUR_COLL_USD", currency: "EUR", kind: "INHERITED",
+      parentCollateral: "490", parentLocal: "514", bridge: "92",
+      spotFxKey: "USDEUR", cutoff: "18M",
+    },
+
+    // ----- UF / inflacion -----
+    {
+      id: "520", name: "CLF_VS_CAMARA", currency: "CLF", kind: "INFLATION_FWD",
+      calendars: ["CLSA"], spotLag: 2, dayCount: "ACT/360", spotFxKey: "CLFCLP",
+      nominal: "193",
+      nodes: [
+        { tenor: "1M", ticker: "UFPC1M", type: "INF_FWD_UF", freq: "Z" },
+        { tenor: "2M", ticker: "UFPC2M", type: "INF_FWD_UF", freq: "Z" },
+        { tenor: "3M", ticker: "UFPC3M", type: "INF_FWD_UF", freq: "Z" },
+        { tenor: "6M", ticker: "UFPC6M", type: "INF_FWD_UF", freq: "Z" },
+        { tenor: "9M", ticker: "UFPC9M", type: "INF_FWD_UF", freq: "Z" },
+        { tenor: "12M", ticker: "UFPC12M", type: "INF_FWD_UF", freq: "Z" },
+        { tenor: "18M", ticker: "UFPC18M", type: "INF_FWD_UF", freq: "Z" },
+        { tenor: "2Y", ticker: "CHSWC2", type: "UF_REAL_SWAP", freq: "S/A" },
+        { tenor: "3Y", ticker: "CHSWC3", type: "UF_REAL_SWAP", freq: "S/A" },
+        { tenor: "5Y", ticker: "CHSWC5", type: "UF_REAL_SWAP", freq: "S/A" },
+        { tenor: "7Y", ticker: "CHSWC7", type: "UF_REAL_SWAP", freq: "S/A" },
+        { tenor: "10Y", ticker: "CHSWC10", type: "UF_REAL_SWAP", freq: "S/A" },
+        { tenor: "15Y", ticker: "CHSWC15", type: "UF_REAL_SWAP", freq: "S/A" },
+        { tenor: "20Y", ticker: "CHSWC20", type: "UF_REAL_SWAP", freq: "S/A" },
+      ],
+    },
+    {
+      id: "440", name: "CLF_COLL_USD", currency: "CLF", kind: "INFLATION_DISC",
+      parentCollateral: "423", parentLocal: "520",
+    },
+  ],
+  routing: [
+    { legCcy: "CLP", legIndex: "FIXED", csa: "USD", forecast: null, discount: "423" },
+    { legCcy: "CLP", legIndex: "CLICP", csa: "USD", forecast: "193", discount: "423" },
+    { legCcy: "CLP", legIndex: "FIXED", csa: "CLP", forecast: null, discount: "193" },
+    { legCcy: "CLP", legIndex: "CLICP", csa: "CLP", forecast: "193", discount: "193" },
+    { legCcy: "CLP", legIndex: "FIXED", csa: "NONE", forecast: null, discount: "193" },
+    { legCcy: "CLP", legIndex: "CLICP", csa: "NONE", forecast: "193", discount: "193" },
+    { legCcy: "USD", legIndex: "FIXED", csa: "USD", forecast: null, discount: "490" },
+    { legCcy: "USD", legIndex: "SOFR", csa: "USD", forecast: "490", discount: "490" },
+    { legCcy: "USD", legIndex: "FIXED", csa: "NONE", forecast: null, discount: "490" },
+    { legCcy: "USD", legIndex: "SOFR", csa: "NONE", forecast: "490", discount: "490" },
+    // EUR
+    { legCcy: "EUR", legIndex: "FIXED", csa: "USD", forecast: null, discount: "403" },
+    { legCcy: "EUR", legIndex: "ESTR", csa: "USD", forecast: "514", discount: "403" },
+    { legCcy: "EUR", legIndex: "EURIBOR_6M", csa: "USD", forecast: "45", discount: "403" },
+    { legCcy: "EUR", legIndex: "FIXED", csa: "EUR", forecast: null, discount: "514" },
+    { legCcy: "EUR", legIndex: "ESTR", csa: "EUR", forecast: "514", discount: "514" },
+    { legCcy: "EUR", legIndex: "EURIBOR_6M", csa: "EUR", forecast: "45", discount: "514" },
+    { legCcy: "EUR", legIndex: "FIXED", csa: "NONE", forecast: null, discount: "514" },
+    { legCcy: "EUR", legIndex: "ESTR", csa: "NONE", forecast: "514", discount: "514" },
+    { legCcy: "EUR", legIndex: "EURIBOR_6M", csa: "NONE", forecast: "45", discount: "514" },
+    // CLF / UF
+    { legCcy: "CLF", legIndex: "FIXED", csa: "USD", forecast: null, discount: "440" },
+    { legCcy: "CLF", legIndex: "UF", csa: "USD", forecast: "520", discount: "440" },
+  ],
+  products: [
+    {
+      id: "IRS_CLP_CAM", name: "IRS CLP Camara", kind: "IRS",
+      legA: { ccy: "CLP", index: "FIXED", freq: "S/A", dayCount: "ACT/360", calendars: ["USNY", "CLSA"] },
+      legB: { ccy: "CLP", index: "CLICP", freq: "S/A", dayCount: "ACT/360", calendars: ["USNY", "CLSA"] },
+      allowedCollaterals: ["USD", "CLP", "NONE"],
+    },
+    {
+      id: "IRS_USD_SOFR", name: "IRS USD SOFR", kind: "IRS",
+      legA: { ccy: "USD", index: "FIXED", freq: "A", dayCount: "ACT/360", calendars: ["USNY"] },
+      legB: { ccy: "USD", index: "SOFR", freq: "A", dayCount: "ACT/360", calendars: ["USNY"] },
+      allowedCollaterals: ["USD", "NONE"],
+    },
+    {
+      id: "CCS_USD_CLP", name: "CCS USD/CLP (SOFR vs Camara)", kind: "CCS",
+      legA: { ccy: "USD", index: "SOFR", freq: "A", dayCount: "ACT/360", calendars: ["USNY"] },
+      legB: { ccy: "CLP", index: "CLICP", freq: "S/A", dayCount: "ACT/360", calendars: ["USNY", "CLSA"] },
+      allowedCollaterals: ["USD"],
+    },
+    {
+      id: "IRS_EUR_ESTR", name: "IRS EUR ESTR", kind: "IRS",
+      legA: { ccy: "EUR", index: "FIXED", freq: "A", dayCount: "30/360", calendars: ["TARGET"] },
+      legB: { ccy: "EUR", index: "ESTR", freq: "A", dayCount: "ACT/360", calendars: ["TARGET"] },
+      allowedCollaterals: ["USD", "EUR", "NONE"],
+    },
+    {
+      id: "IRS_EUR_EURIBOR", name: "IRS EUR Euribor 6M", kind: "IRS",
+      legA: { ccy: "EUR", index: "FIXED", freq: "A", dayCount: "30/360", calendars: ["TARGET"] },
+      legB: { ccy: "EUR", index: "EURIBOR_6M", freq: "S/A", dayCount: "ACT/360", calendars: ["TARGET"] },
+      allowedCollaterals: ["USD", "EUR", "NONE"],
+    },
+    {
+      id: "CCS_EUR_USD", name: "CCS EUR/USD (ESTR vs SOFR)", kind: "CCS",
+      legA: { ccy: "EUR", index: "ESTR", freq: "A", dayCount: "ACT/360", calendars: ["TARGET"] },
+      legB: { ccy: "USD", index: "SOFR", freq: "A", dayCount: "ACT/360", calendars: ["USNY"] },
+      allowedCollaterals: ["USD"],
+    },
+    {
+      id: "IRS_CLF_CAM", name: "IRS CLF Camara (real vs UF)", kind: "IRS",
+      legA: { ccy: "CLF", index: "FIXED", freq: "S/A", dayCount: "ACT/360", calendars: ["CLSA"] },
+      legB: { ccy: "CLF", index: "UF", freq: "S/A", dayCount: "ACT/360", calendars: ["CLSA"] },
+      allowedCollaterals: ["USD"],
+    },
+    {
+      id: "CCS_CLF_CLP", name: "CCS CLF/CLP (UF vs Camara)", kind: "CCS",
+      legA: { ccy: "CLF", index: "UF", freq: "S/A", dayCount: "ACT/360", calendars: ["CLSA"] },
+      legB: { ccy: "CLP", index: "CLICP", freq: "S/A", dayCount: "ACT/360", calendars: ["USNY", "CLSA"] },
+      allowedCollaterals: ["USD"],
+    },
+  ],
+};
+
+export function cloneDefault(): AppConfig {
+  return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+}

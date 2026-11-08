@@ -1,0 +1,102 @@
+{
+  "_doc": "Configuracion maestra del grafo de curvas (Capas 1-4). Este archivo es la unica fuente de verdad: agregar una curva o una regla de ruteo NO requiere tocar codigo. El slice actual cubre el complejo CLP (490 -> 193 -> 194 -> 423) y el ruteo del IRS CLP Camara.",
+  "valuation_date": "2026-11-07",
+  "spot_fx_keys": { "USDCLP": "USDCLP", "CLFCLP": "CLFCLP", "EURUSD": "EURUSD" },
+
+  "curves": {
+    "490": {
+      "name": "USD_SOFR", "currency": "USD", "class": "NATIVE",
+      "calendars": ["USNY"], "spot_lag": 2, "day_count": "ACT/360",
+      "interpolation": "LOG_LINEAR_DF",
+      "nodes": [
+        {"tenor": "1D",  "ticker": "SOFRRATE",  "type": "CASH",     "freq": "Z"},
+        {"tenor": "1W",  "ticker": "USOSFR1W",  "type": "OIS_SWAP", "freq": "A"},
+        {"tenor": "1M",  "ticker": "USOSFR1M",  "type": "OIS_SWAP", "freq": "A"},
+        {"tenor": "2M",  "ticker": "USOSFR2M",  "type": "OIS_SWAP", "freq": "A"},
+        {"tenor": "3M",  "ticker": "USOSFR3M",  "type": "OIS_SWAP", "freq": "A"},
+        {"tenor": "6M",  "ticker": "USOSFR6M",  "type": "OIS_SWAP", "freq": "A"},
+        {"tenor": "9M",  "ticker": "USOSFR9M",  "type": "OIS_SWAP", "freq": "A"},
+        {"tenor": "12M", "ticker": "USOSFR12M", "type": "OIS_SWAP", "freq": "A"},
+        {"tenor": "18M", "ticker": "USOSFR18M", "type": "OIS_SWAP", "freq": "A"},
+        {"tenor": "2Y",  "ticker": "USOSFR2",   "type": "OIS_SWAP", "freq": "A"},
+        {"tenor": "3Y",  "ticker": "USOSFR3",   "type": "OIS_SWAP", "freq": "A"},
+        {"tenor": "5Y",  "ticker": "USOSFR5",   "type": "OIS_SWAP", "freq": "A"},
+        {"tenor": "7Y",  "ticker": "USOSFR7",   "type": "OIS_SWAP", "freq": "A"},
+        {"tenor": "10Y", "ticker": "USOSFR10",  "type": "OIS_SWAP", "freq": "A"},
+        {"tenor": "15Y", "ticker": "USOSFR15",  "type": "OIS_SWAP", "freq": "A"},
+        {"tenor": "20Y", "ticker": "USOSFR20",  "type": "OIS_SWAP", "freq": "A"},
+        {"tenor": "30Y", "ticker": "USOSFR30",  "type": "OIS_SWAP", "freq": "A"}
+      ]
+    },
+
+    "193": {
+      "name": "CLP_CAMARA", "currency": "CLP", "class": "NATIVE",
+      "calendars": ["USNY", "CLSA"], "spot_lag": 2, "day_count": "ACT/360",
+      "interpolation": "LOG_LINEAR_DF",
+      "_note": "NDIRS offshore (CHSWNI): calc cal FD+CL, cero cupon hasta 18M, semestral desde 2Y.",
+      "nodes": [
+        {"tenor": "1D",  "ticker": "CHTAS1D",   "type": "CASH",     "freq": "Z"},
+        {"tenor": "1M",  "ticker": "CHSWNI1M",  "type": "OIS_SWAP", "freq": "Z"},
+        {"tenor": "2M",  "ticker": "CHSWNI2M",  "type": "OIS_SWAP", "freq": "Z"},
+        {"tenor": "3M",  "ticker": "CHSWNI3M",  "type": "OIS_SWAP", "freq": "Z"},
+        {"tenor": "6M",  "ticker": "CHSWNI6M",  "type": "OIS_SWAP", "freq": "Z"},
+        {"tenor": "9M",  "ticker": "CHSWNI9M",  "type": "OIS_SWAP", "freq": "Z"},
+        {"tenor": "12M", "ticker": "CHSWNI12M", "type": "OIS_SWAP", "freq": "Z"},
+        {"tenor": "18M", "ticker": "CHSWNI18M", "type": "OIS_SWAP", "freq": "Z"},
+        {"tenor": "2Y",  "ticker": "CHSWNI2",   "type": "OIS_SWAP", "freq": "S/A"},
+        {"tenor": "3Y",  "ticker": "CHSWNI3",   "type": "OIS_SWAP", "freq": "S/A"},
+        {"tenor": "5Y",  "ticker": "CHSWNI5",   "type": "OIS_SWAP", "freq": "S/A"},
+        {"tenor": "7Y",  "ticker": "CHSWNI7",   "type": "OIS_SWAP", "freq": "S/A"},
+        {"tenor": "10Y", "ticker": "CHSWNI10",  "type": "OIS_SWAP", "freq": "S/A"},
+        {"tenor": "15Y", "ticker": "CHSWNI15",  "type": "OIS_SWAP", "freq": "S/A"},
+        {"tenor": "20Y", "ticker": "CHSWNI20",  "type": "OIS_SWAP", "freq": "S/A"}
+      ]
+    },
+
+    "194": {
+      "name": "BASIS_USD_CLP", "currency": "CLP_USD", "class": "BRIDGE",
+      "calendars": ["USNY", "CLSA"], "spot_lag": 2, "day_count": "ACT/360",
+      "_note": "Contenedor de nodos puente para la 423: puntos FX NDF (<=18M) + CCS basis (>=2Y).",
+      "nodes": [
+        {"tenor": "1W",  "ticker": "CHN1W",  "type": "FX_FWD_PTS", "freq": "Z", "points_scale": 1.0},
+        {"tenor": "1M",  "ticker": "CHN1M",  "type": "FX_FWD_PTS", "freq": "Z", "points_scale": 1.0},
+        {"tenor": "2M",  "ticker": "CHN2M",  "type": "FX_FWD_PTS", "freq": "Z", "points_scale": 1.0},
+        {"tenor": "3M",  "ticker": "CHN3M",  "type": "FX_FWD_PTS", "freq": "Z", "points_scale": 1.0},
+        {"tenor": "6M",  "ticker": "CHN6M",  "type": "FX_FWD_PTS", "freq": "Z", "points_scale": 1.0},
+        {"tenor": "9M",  "ticker": "CHN9M",  "type": "FX_FWD_PTS", "freq": "Z", "points_scale": 1.0},
+        {"tenor": "12M", "ticker": "CHN12M", "type": "FX_FWD_PTS", "freq": "Z", "points_scale": 1.0},
+        {"tenor": "18M", "ticker": "CHN18M", "type": "FX_FWD_PTS", "freq": "Z", "points_scale": 1.0},
+        {"tenor": "2Y",  "ticker": "CPXOSS2",  "type": "CCS_BASIS", "freq": "A"},
+        {"tenor": "3Y",  "ticker": "CPXOSS3",  "type": "CCS_BASIS", "freq": "A"},
+        {"tenor": "5Y",  "ticker": "CPXOSS5",  "type": "CCS_BASIS", "freq": "A"},
+        {"tenor": "7Y",  "ticker": "CPXOSS7",  "type": "CCS_BASIS", "freq": "A"},
+        {"tenor": "10Y", "ticker": "CPXOSS10", "type": "CCS_BASIS", "freq": "A"},
+        {"tenor": "15Y", "ticker": "CPXOSS15", "type": "CCS_BASIS", "freq": "A"},
+        {"tenor": "20Y", "ticker": "CPXOSS20", "type": "CCS_BASIS", "freq": "A"}
+      ]
+    },
+
+    "423": {
+      "name": "CLP_COLL_USD", "currency": "CLP", "class": "INHERITED",
+      "parent_collateral": "490", "parent_local": "193", "bridge": "194",
+      "spot_fx": "USDCLP", "cutoff": "18M"
+    }
+  },
+
+  "routing": [
+    {"leg_ccy": "CLP", "leg_index": "FIXED", "csa": "USD",  "forecast": null,  "discount": "423"},
+    {"leg_ccy": "CLP", "leg_index": "CLICP", "csa": "USD",  "forecast": "193", "discount": "423"},
+    {"leg_ccy": "CLP", "leg_index": "FIXED", "csa": "CLP",  "forecast": null,  "discount": "193"},
+    {"leg_ccy": "CLP", "leg_index": "CLICP", "csa": "CLP",  "forecast": "193", "discount": "193"},
+    {"leg_ccy": "CLP", "leg_index": "FIXED", "csa": "NONE", "forecast": null,  "discount": "193"},
+    {"leg_ccy": "CLP", "leg_index": "CLICP", "csa": "NONE", "forecast": "193", "discount": "193"}
+  ],
+
+  "_future_curves": {
+    "521": "CLP_CCS_VS_USD (sintetica CHSWP*100 + CPXOSS)",
+    "520": "CLF_VS_CAMARA (inflacion, dias 9)",
+    "440": "CLF_COLL_USD",
+    "514": "EUR_OIS_ESTR", "45": "EUR_EURIBOR_6M",
+    "92": "EUR_USD_BASIS", "403": "EUR_COLL_USD"
+  }
+}

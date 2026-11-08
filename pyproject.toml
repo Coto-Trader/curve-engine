@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "curve-engine"
+version = "0.1.0"
+description = "Motor de construccion de curvas de mercado estilo Bloomberg (ICVS/SWPM) para valorizacion multi-curva y XVA."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Carlos" }]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+# Etapa 2 (API web): se agregaran fastapi + uvicorn + pydantic aqui.
+api = ["fastapi>=0.110", "uvicorn>=0.29", "pydantic>=2.6"]
+
+[project.scripts]
+curve-slice = "curve_engine.scripts_entry:run_slice_cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
